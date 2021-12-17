@@ -75,21 +75,27 @@ def verify_contract_by_address(
 	# --
 
 	try:
-		bytecode = w3.eth.get_code(address).hex()
+		bytecode = w3.eth.get_code(w3.toChecksumAddress(address)).hex()
 	except InvalidAddress as e:
+		print('1')
+		print(e)
 		raise HTTPException(
-			status=400,
+			status_code=400,
 			detail='This is an invalid address! Try again!',
 		)
 	except Exception as e:
+		print('2')
+		print(e)
 		raise HTTPException(
-			status=500,
+			status_code=500,
 			detail='Error! Try again!',
 		)
 	else:
 		if bytecode != settings.CONTRACT_BYTE_CODE.get_secret_value():
+			print('3')
+			print('apple...')
 			raise HTTPException(
-				status=400,
+				status_code=400,
 				detail='This is an invalid contract!',
 			)
 
@@ -121,7 +127,7 @@ async def verify_contract(
 
 
 	slug = create_token(
-		subject=bytecode,
+		subject=contract_address_in.contract_address,
 	)
 
 	return slug
@@ -148,12 +154,12 @@ async def validate_contract(
 
 	if address is None:
 		raise HTTPException(
-			status=404,
+			status_code=404,
 			detail='Packet not found!',
 		)
 
 
-	verify_contract_by_address(contract_address_in.contract_address)
+	verify_contract_by_address(address)
 
 
 	return {
@@ -195,7 +201,7 @@ async def accept_packet(
 
 	if address is None:
 		raise HTTPException(
-			status=404,
+			status_code=404,
 			detail='Packet not found!',
 		)
 
@@ -210,7 +216,9 @@ async def accept_packet(
 	)
 
 
-	estimated_gas = contract_instance.functions.receive_packet(accept_packet_in.address, 0).estimateGas() * w3.eth.gas_price
+	estimated_gas = contract_instance.functions.receive_packet(accept_packet_in.address, 0).estimateGas({
+		'from': settings.CELO_ADDRESS.get_secret_value(),
+	}) * w3.eth.gas_price
 
 
 	txn = contract_instance.functions.receive_packet(accept_packet_in.address, estimated_gas).buildTransaction({
@@ -245,9 +253,17 @@ async def accept_packet(
 
 
 
+class Recipient(BaseModel):
+	hash: Any
+	value: Any
+	to: Any
+	timeStamp: Any
+
+
 
 @router.get(
 	'/packet-leaderboard/{slug}',
+	response_model=List[Recipient],
 )
 @limiter.limit('120/minute')
 async def read_packet_leaderboard(
@@ -263,7 +279,7 @@ async def read_packet_leaderboard(
 
 	if address is None:
 		raise HTTPException(
-			status=404,
+			status_code=404,
 			detail='Packet not found!',
 		)
 
@@ -294,9 +310,12 @@ async def read_packet_leaderboard(
 
 	recipients = []
 
-	for tokentx in resp.json():
+	for tokentx in resp.json()['result']:
 		# --
-		if (tokentx['from'].lower() == address.lower()) and (token['ContractAddress'].lower() == '0xf194afdf50b03e69bd7d057c1aa9e10c9954e4c9'.lower()):
+		if (tokentx['from'].lower() == address.lower()) and (tokentx['contractAddress'].lower() == '0xf194afdf50b03e69bd7d057c1aa9e10c9954e4c9'.lower()):
+
+			if tokentx['to'].lower() == '0xc7c1f793E9441e0abB593f0540a98c36d0b7Eb6E'.lower():
+				continue
 
 			params = {
 				'module': 'transaction',
@@ -318,7 +337,7 @@ async def read_packet_leaderboard(
 				)
 
 			# Invalid txn...
-			if resp.json()['status'] != '1':
+			if resp.json()['result']['status'] != '1':
 				continue
 
 
@@ -364,7 +383,7 @@ async def read_packet_leaderboard(
 
 # 	if address is None:
 # 		raise HTTPException(
-# 			status=404,
+# 			status_code=404,
 # 			detail='Packet not found!',
 # 		)
 
