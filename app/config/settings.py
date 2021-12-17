@@ -147,7 +147,7 @@ class Settings(BaseSettings):
 			return 'http://{}'.format(values.get('SERVER_NAME'))
 
 
-		CLI_PASSWORD: SecretStr = os.environ['CLI_PASSWORD']
+		# CLI_PASSWORD: SecretStr = os.environ['CLI_PASSWORD']
 
 
 	if in_testing:

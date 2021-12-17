@@ -26,7 +26,7 @@ from slowapi.errors import RateLimitExceeded
 from app.extensions import limiter
 
 
-from raven import Client
+# from raven import Client
 
 
 import os

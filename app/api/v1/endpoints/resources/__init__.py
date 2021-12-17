@@ -27,13 +27,11 @@ from app.extensions import limiter
 from app.config.settings import settings
 
 
-from app.utils.web3 import (
-	w3,
-	Web3,
-)
+# from app.utils.web3 import (
+# 	w3,
+# 	# Web3,
+# )
 
-
-from web3.extensions import InvalidAddress
 
 
 from app.security import (
@@ -43,6 +41,23 @@ from app.security import (
 
 
 from pydantic import BaseModel
+
+
+
+from app.config.settings import settings
+
+
+
+from web3 import Web3
+
+
+
+w3 = Web3(Web3.HTTPProvider(settings.WEB3_HTTP_PROVIDER_STR))
+
+
+from web3.exceptions import *
+
+
 
 
 
@@ -92,7 +107,7 @@ class ContractAddressIn(BaseModel):
 	'/verify-contract',
 	# response_model=schemas.MsgSchema,
 )
-@limiter.limiter('10/minute')
+@limiter.limit('10/minute')
 async def verify_contract(
 	request: Request,
 	*,
@@ -117,7 +132,7 @@ async def verify_contract(
 	'/validate-contract/{slug}',
 	response_model=schemas.MsgSchema,
 )
-@limiter.limiter('10/minute')
+@limiter.limit('10/minute')
 async def validate_contract(
 	request: Request,
 	*,
@@ -154,7 +169,7 @@ class AcceptPacketIn(BaseModel):
 @router.post(
 	'/accept-packet/{slug}',
 )
-@limiter.limiter('10/minute')
+@limiter.limit('10/minute')
 async def accept_packet(
 	request: Request,
 	*,
@@ -162,8 +177,9 @@ async def accept_packet(
 	accept_packet_in: AcceptPacketIn,
 ) -> Any:
 	# --
+	# Double collect?
 
-	if not Web3.isAddress(accept_packet_in.address):
+	if not w3.isAddress(accept_packet_in.address):
 		raise HTTPException(
 			status='400',
 			detail='Invalid address!',
@@ -191,10 +207,10 @@ async def accept_packet(
 	)
 
 
-	estimated_gas = contract_instance.functions.receive_packet(accept_packet_in.address, 0).estimateGas()
+	estimated_gas = contract_instance.functions.receive_packet(accept_packet_in.address, 0).estimateGas() * w3.eth.gas_price
 
 
-	txn = contract_instance.functions.receive_packet(accept_packet_in.address, 0).buildTransaction({
+	txn = contract_instance.functions.receive_packet(accept_packet_in.address, estimated_gas).buildTransaction({
 		'from': settings.CELO_ADDRESS.get_secret_value(),
 		'gasPrice': w3.eth.gas_price,
 		'nonce': w3.eth.get_transaction_count(settings.CELO_ADDRESS.get_secret_value()),
@@ -207,9 +223,21 @@ async def accept_packet(
 	)
 
 
-	w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+	try:
+		w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+	except:
+		raise HTTPException(
+			status=500,
+			detail='Error!',
+		)
 
-	# wait ..
+
+	txn = w3.toHex(w3.keccak(signed_txn.rawTransaction))
+
+
+	return {
+		'txn': f'{txn}',
+	}
 
 
 
@@ -221,7 +249,7 @@ async def accept_packet(
 # @router.post(
 # 	'/accept-packet-phone/{slug}',
 # )
-# @limiter.limiter('10/minute')
+# @limiter.limit('10/minute')
 # async def accept_packet_phone(
 # 	request: Request,
 # 	*,
