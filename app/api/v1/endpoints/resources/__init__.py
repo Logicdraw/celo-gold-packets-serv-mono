@@ -337,8 +337,8 @@ async def read_packet_leaderboard(
 				)
 
 			# Invalid txn...
-			if resp.json()['result']['status'] != '1':
-				continue
+			# if resp.json()['result']['status'] != '1':
+				# continue
 
 
 			recipients.append(
