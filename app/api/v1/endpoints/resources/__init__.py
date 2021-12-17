@@ -47,6 +47,8 @@ from pydantic import BaseModel
 from app.config.settings import settings
 
 
+import httpx
+
 
 from web3 import Web3
 
@@ -178,6 +180,7 @@ async def accept_packet(
 ) -> Any:
 	# --
 	# Double collect?
+	# later resolve this ...
 
 	if not w3.isAddress(accept_packet_in.address):
 		raise HTTPException(
@@ -241,6 +244,96 @@ async def accept_packet(
 
 
 
+
+
+@router.get(
+	'/packet-leaderboard/{slug}',
+)
+@limiter.limit('120/minute')
+async def read_packet_leaderboard(
+	request: Request,
+	*,
+	slug: str,
+) -> Any:
+	# --
+	
+	address = verify_token(
+		token=slug,
+	)
+
+	if address is None:
+		raise HTTPException(
+			status=404,
+			detail='Packet not found!',
+		)
+
+
+	verify_contract_by_address(address)
+
+
+	url = f'https://alfajores-blockscout.celo-testnet.org/api'
+
+	params = {
+		'module': 'account',
+		'action': 'tokentx',
+		'address': address,
+	}
+
+	try:
+		async with httpx.AsyncClient() as a_client:
+			resp = await a_client.request(
+				method='GET',
+				url=url,
+				params=params,
+			)
+	except Exception as err:
+		raise HTTPException(
+			status=500,
+			detail='Error! Try aagain!'
+		)
+
+	recipients = []
+
+	for tokentx in resp.json():
+		# --
+		if (tokentx['from'].lower() == address.lower()) and (token['ContractAddress'].lower() == '0xf194afdf50b03e69bd7d057c1aa9e10c9954e4c9'.lower()):
+
+			params = {
+				'module': 'transaction',
+				'action': 'gettxreceiptstatus',
+				'txhash': tokentx['hash'],
+			}
+
+			try:
+				async with httpx.AsyncClient() as a_client:
+					resp = await a_client.request(
+						method='GET',
+						url=url,
+						params=params,
+					)
+			except Exception as err:
+				raise HTTPException(
+					status=500,
+					detail='Error! Try aagain!'
+				)
+
+			# Invalid txn...
+			if resp.json()['status'] != '1':
+				continue
+
+
+			recipients.append(
+				{
+					'hash': tokentx['hash'],
+					'value': tokentx['value'],
+					'to': tokentx['to'],
+					'timeStamp': tokentx['timeStamp'],
+				},
+			)
+
+
+
+	return recipients
 
 
 
