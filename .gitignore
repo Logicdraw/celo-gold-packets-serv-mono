@@ -1,0 +1,14 @@
+.env
+
+~TODO.md
+.pytest_cache
+
+__pycache__
+
+*.pyc
+
+
+# .python-version
+
+pytest_report.html
+.env
