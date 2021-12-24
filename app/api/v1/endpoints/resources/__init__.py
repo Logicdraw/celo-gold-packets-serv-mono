@@ -92,6 +92,8 @@ def verify_contract_by_address(
 		)
 	else:
 		if bytecode != settings.CONTRACT_BYTE_CODE.get_secret_value():
+			print(bytecode)
+			print(settings.CONTRACT_BYTE_CODE.get_secret_value())
 			print('3')
 			print('apple...')
 			raise HTTPException(
