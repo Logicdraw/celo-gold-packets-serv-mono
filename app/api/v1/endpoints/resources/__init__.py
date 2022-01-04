@@ -218,12 +218,12 @@ async def accept_packet(
 	)
 
 
-	estimated_gas = contract_instance.functions.receive_packet(accept_packet_in.address, 0).estimateGas({
+	estimated_gas = contract_instance.functions.receive_packet_drop(accept_packet_in.address, 0).estimateGas({
 		'from': settings.CELO_ADDRESS.get_secret_value(),
 	}) * w3.eth.gas_price
 
 
-	txn = contract_instance.functions.receive_packet(accept_packet_in.address, estimated_gas).buildTransaction({
+	txn = contract_instance.functions.receive_packet_drop(accept_packet_in.address, estimated_gas).buildTransaction({
 		'from': settings.CELO_ADDRESS.get_secret_value(),
 		'gasPrice': w3.eth.gas_price,
 		'nonce': w3.eth.get_transaction_count(settings.CELO_ADDRESS.get_secret_value()),
