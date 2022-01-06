@@ -289,7 +289,8 @@ async def read_packet_leaderboard(
 	verify_contract_by_address(address)
 
 
-	url = f'https://alfajores-blockscout.celo-testnet.org/api'
+	# url = f'https://alfajores-blockscout.celo-testnet.org/api'
+	url = settings.EXPLORER_API_URL
 
 	params = {
 		'module': 'account',
