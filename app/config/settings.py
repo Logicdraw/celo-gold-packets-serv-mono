@@ -111,6 +111,9 @@ class Settings(BaseSettings):
 	EXPLORER_API_URL: str = os.environ['EXPLORER_API_URL']
 
 
+	CELO_ERC20_ADDRESS: SecretStr = os.environ['CELO_ERC20_ADDRESS']
+
+
 	CELO_ADDRESS: SecretStr = os.environ['CELO_ADDRESS']
 
 	CELO_ADDRESS_PRIVATE_KEY: SecretStr = os.environ['CELO_ADDRESS_PRIVATE_KEY']

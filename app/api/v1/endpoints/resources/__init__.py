@@ -315,9 +315,9 @@ async def read_packet_leaderboard(
 
 	for tokentx in resp.json()['result']:
 		# --
-		if (tokentx['from'].lower() == address.lower()) and (tokentx['contractAddress'].lower() == '0xf194afdf50b03e69bd7d057c1aa9e10c9954e4c9'.lower()):
+		if (tokentx['from'].lower() == address.lower()) and (tokentx['contractAddress'].lower() == settings.CELO_ERC20_ADDRESS.get_secret_value().lower()):
 
-			if tokentx['to'].lower() == '0xc7c1f793E9441e0abB593f0540a98c36d0b7Eb6E'.lower():
+			if tokentx['to'].lower() == settings.CELO_ADDRESS.get_secret_value().lower():
 				continue
 
 			params = {
